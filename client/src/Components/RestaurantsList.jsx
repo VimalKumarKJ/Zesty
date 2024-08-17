@@ -1,8 +1,11 @@
 import React, { useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import RestaurantFinder from "../Apis/RestaurantFinder";
 import { RestaurantContext } from "../Context/RestaurantContext";
+import StarRating from "./StarRating";
 
 const RestaurantsList = (props) => {
+  let navigate = useNavigate();
   const { restaurants, setRestaurants } = useContext(RestaurantContext);
   //Use Effect should not return anything even promises
   useEffect(() => {
@@ -10,12 +13,48 @@ const RestaurantsList = (props) => {
       try {
         const response = await RestaurantFinder.get("/");
         setRestaurants(response.data.restaurants);
+        console.log(response);
       } catch (err) {
         console.error(err);
       }
     }
     fetchData();
   }, []);
+
+  const handleUpdate = (e, id) => {
+    e.stopPropagation();
+    navigate(`/restaurant/update/${id}`);
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    try {
+      const response = await RestaurantFinder.delete(`/${id}`);
+      setRestaurants(
+        restaurants.filter((restaurant) => {
+          return restaurant.id !== id;
+        })
+      );
+      console.log(response);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const renderRating = (restaurant) => {
+    if (!restaurant.count) {
+      return <span className="text-warning">No reviews</span>;
+    }
+    return (
+      <>
+        <StarRating rating={restaurant.average_rating} />
+        <span>({restaurant.count})</span>
+      </>
+    );
+  };
+  const handleRestaurant = (id) => {
+    navigate(`/restaurant/${id}`);
+  };
 
   return (
     <div className="container list-group my-4">
@@ -33,16 +72,31 @@ const RestaurantsList = (props) => {
         <tbody>
           {restaurants &&
             restaurants.map((restaurant) => (
-              <tr key={restaurant.id}>
+              <tr
+                key={restaurant.id}
+                onClick={() => {
+                  handleRestaurant(restaurant.id);
+                }}
+              >
                 <td>{restaurant.name}</td>
                 <td>{restaurant.location}</td>
                 <td>{"$".repeat(restaurant.price_range)}</td>
-                <td>*</td>
+                <td>{renderRating(restaurant)}</td>
                 <td>
-                  <button className="btn btn-warning">Edit</button>
+                  <button
+                    onClick={(e) => handleUpdate(e, restaurant.id)}
+                    className="btn btn-warning"
+                  >
+                    Update
+                  </button>
                 </td>
                 <td>
-                  <button className="btn btn-danger">Delete</button>
+                  <button
+                    onClick={(e) => handleDelete(e, restaurant.id)}
+                    className="btn btn-danger"
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
